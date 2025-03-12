@@ -26,6 +26,7 @@ const columns = [
   { id: "collegeName", label: "College Name", minWidth: 50 },
   { id: "department", label: "Department", minWidth: 50 },
   { id: "paid", label: "Payment confirmed", minWidth: 50 },
+  { id: "screenshot", label: "Screenshot", minWidth: 50 },
   { id: "transactionNumber", label: "Transaction Number", minWidth: 100 },
   { id: "selectedDepartment", label: "Selected Dept", minWidth: 100 },
   { id: "confirm", label: "Confirm Payment", minWidth: 70 },
@@ -67,6 +68,7 @@ const Data = ({ updateForm, setUpdateForm }) => {
   }
 
   return (
+    
     <div>
       <div className="w-full">
         <Paper
