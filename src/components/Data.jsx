@@ -8,15 +8,18 @@ import TableRow from "@mui/material/TableRow";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
-
-import FileDownloadDoneIcon from "@mui/icons-material/FileDownloadDone";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-
+import FileDownloadDoneIcon from "@mui/icons-material/FileDownloadDone";
+import ImageIcon from "@mui/icons-material/Image";
 import CircularProgress from "@mui/material/CircularProgress";
-
 import { api } from "../api/api";
-
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const columns = [
   { id: "sno", label: "S No", minWidth: 80 },
@@ -35,7 +38,11 @@ const columns = [
 const Data = ({ updateForm, setUpdateForm }) => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  // const [restartEffect, setRestartEffect] = useState(true);
+  const [openImageDialog, setOpenImageDialog] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState("");
+  const [imageLoading, setImageLoading] = useState(false);
+  const [userDepartment, setUserDepartment] = useState(sessionStorage.getItem("department") || "all");
+  const [userType, setUserType] = useState(sessionStorage.getItem("user") || "");
 
   const navigate = useNavigate();
 
@@ -54,10 +61,38 @@ const Data = ({ updateForm, setUpdateForm }) => {
         setLoading(false);
       })
       .catch((err) => {
-        //console.log(err);
+        console.error(err);
         navigate("/");
       });
   }, [updateForm]);
+
+  const handleOpenImage = async (userId) => {
+    try {
+      setImageLoading(true);
+      
+      // Make the API call to get the image URL
+      const response = await api.get(`/getPaymentImage/${userId}`);
+      
+      if (response.data && response.data.imageUrl) {
+        // Set the direct image URL
+        setCurrentImageUrl(response.data.imageUrl);
+        setOpenImageDialog(true);
+      } else {
+        toast.error("Failed to load image");
+      }
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      toast.error(error.response?.data?.msg || "Failed to load image");
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+
+  const handleCloseImage = () => {
+    setOpenImageDialog(false);
+    setCurrentImageUrl("");
+  };
 
   if (loading) {
     return (
@@ -68,7 +103,6 @@ const Data = ({ updateForm, setUpdateForm }) => {
   }
 
   return (
-    
     <div>
       <div className="w-full">
         <Paper
@@ -98,7 +132,6 @@ const Data = ({ updateForm, setUpdateForm }) => {
               </TableHead>
               <TableBody sx={{ overflow: "scroll" }}>
                 {rows.map((row, index) => {
-                  // //console.log(row);
                   return (
                     <TableRow hover role="checkbox" key={index}>
                       {columns.map((column, newIndex) => {
@@ -118,8 +151,23 @@ const Data = ({ updateForm, setUpdateForm }) => {
                             </TableCell>
                           );
                         }
+                        if (column.id === "screenshot") {
+                          return (
+                            <TableCell key={newIndex}>
+                              <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => handleOpenImage(row["_id"])}
+                                disabled={!row.transactionScreenshot}
+                              >
+                                <ImageIcon />
+                              </Button>
+                            </TableCell>
+                          );
+                        }
                         if (column.id === "confirm") {
-                          if (sessionStorage.getItem("user") === "admin") {
+                          if (userType === "super_admin" || 
+                             (userType === "department_admin" && userDepartment === row.selectedDepartment)) {
                             return (
                               <TableCell
                                 key={newIndex}
@@ -152,7 +200,7 @@ const Data = ({ updateForm, setUpdateForm }) => {
                                         setLoading(false);
                                       })
                                       .catch((err) => {
-                                        //console.log(err);
+                                        console.error(err);
                                       });
                                   }}
                                 >
@@ -178,7 +226,7 @@ const Data = ({ updateForm, setUpdateForm }) => {
                                         setLoading(false);
                                       })
                                       .catch((err) => {
-                                        //console.log(err);
+                                        console.error(err);
                                       });
                                   }}
                                 >
@@ -204,6 +252,41 @@ const Data = ({ updateForm, setUpdateForm }) => {
           </TableContainer>
         </Paper>
       </div>
+
+      {/* Image Dialog */}
+<Dialog 
+  open={openImageDialog} 
+  onClose={handleCloseImage}
+  maxWidth="md"
+  fullWidth={true}
+>
+  <DialogTitle>
+    Payment Screenshot
+    <IconButton
+      onClick={handleCloseImage}
+      sx={{ position: 'absolute', right: 8, top: 8 }}
+    >
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+  <DialogContent>
+    {imageLoading ? (
+      <div className="w-full flex justify-center p-10">
+        <CircularProgress />
+      </div>
+    ) : currentImageUrl ? (
+      <img 
+        src={currentImageUrl} 
+        alt="Payment Screenshot" 
+        style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+      />
+    ) : (
+      <div className="text-center p-5">
+        <p>No screenshot available</p>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
     </div>
   );
 };
