@@ -260,6 +260,7 @@ const Data = ({ updateForm, setUpdateForm }) => {
   maxWidth="md"
   fullWidth={true}
 >
+  
   <DialogTitle>
     Payment Screenshot
     <IconButton
